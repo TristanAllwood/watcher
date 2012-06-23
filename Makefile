@@ -1,5 +1,5 @@
-OBJS=watcher.o
-SRC=*.c
+OBJS=watcher.o config.o
+SRC=watcher.c config.h
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -pedantic-errors -std=c99 -g
 LDFLAGS=
@@ -7,6 +7,8 @@ LDFLAGS=
 .SUFFIXES: .c .o .h
 
 all: tags watcher
+
+watcher.o: config.h
 
 watcher: $(OBJS)
 

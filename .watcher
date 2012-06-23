@@ -1,5 +1,5 @@
-*.c *.h: 
-  make
+*.c *.h: make
 
 Makefile: 
-  make clean all
+  make clean
+  make all
