@@ -1,0 +1,5 @@
+*.c *.h: 
+  make
+
+Makefile: 
+  make clean all
