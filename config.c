@@ -86,7 +86,23 @@ config_error_t parse_config(config_t **out, FILE *file) {
 }
 
 static config_error_t parse_patterns(char ***patterns, char *buffer) {
-  char * save_ptr;
+  char *save_ptr;
+  *patterns = calloc(PATTERN_LIMIT, sizeof(char*));
+  char *delim = " \t";
+
+  char **current_pattern = *patterns;
+
+  int num_patterns = 0;
+  do {
+    *current_pattern = strtok_r(buffer, delim, &save_ptr);
+    buffer = NULL;
+    num_patterns++;
+
+    if (num_patterns > PATTERN_LIMIT) {
+      // TODO: too many patterns!
+    }
+  } while (*(current_pattern++) != NULL);
+
   return CONFIG_OK;
 }
 
