@@ -1,15 +1,17 @@
-#define _POSIX_SOURCE
+#define _POSIX_C_SOURCE 200809L
 
 #include <string.h>
 #include <stdlib.h>
 
 #include "config.h"
+#include "util.h"
 
 static config_error_t parse_patterns(char ***, char *);
 static config_error_t parse_commands(char ***, char *, FILE *);
 
 enum { BUFFER_SIZE = 512,
        PATTERN_LIMIT = 5,
+       COMMAND_LIMIT = 5,
        STANZA_LIMIT  = 5};
 
 config_error_t parse_config(config_t **out, FILE *file) {
@@ -88,25 +90,59 @@ config_error_t parse_config(config_t **out, FILE *file) {
 static config_error_t parse_patterns(char ***patterns, char *buffer) {
   char *save_ptr;
   *patterns = calloc(PATTERN_LIMIT, sizeof(char*));
-  char *delim = " \t";
+  if (*patterns == NULL) {
+    return CONFIG_ERRNO;
+  }
 
   char **current_pattern = *patterns;
 
-  int num_patterns = 0;
   do {
-    *current_pattern = strtok_r(buffer, delim, &save_ptr);
-    buffer = NULL;
-    num_patterns++;
-
-    if (num_patterns > PATTERN_LIMIT) {
-      // TODO: too many patterns!
+    if (current_pattern - *patterns >= PATTERN_LIMIT) {
+      // TODO: free stuff
+      return CONFIG_TOO_MANY_PATTERNS;
     }
+
+    char *tmp = strtok_r(buffer, " \t", &save_ptr);
+    *current_pattern = tmp != NULL ? strdup(tmp) : NULL;
+    buffer = NULL;
   } while (*(current_pattern++) != NULL);
+
+  // TODO: realloc patterns.
 
   return CONFIG_OK;
 }
 
 static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
+
+  *out = calloc(COMMAND_LIMIT, sizeof(char *));
+  if (*out == NULL) {
+    return CONFIG_ERRNO;
+  }
+
+  char **current_command = *out;
+
+  do {
+    if (current_command - *out >= COMMAND_LIMIT) {
+      //TODO: free stuff
+      return CONFIG_TOO_MANY_COMMANDS;
+    }
+
+    size_t skip = strspn(buffer, " \t");
+    char *command = buffer + skip;
+
+    chomp(command);
+    if (command[0] == '\0') {
+      continue;
+    }
+    *current_command = strdup(command);
+    if (*current_command == NULL) {
+      // TODO: free stuff
+      return CONFIG_ERRNO;
+    }
+
+    current_command++;
+  } while (fgets(buffer, BUFFER_SIZE, file) != NULL && *buffer != '\0' && *buffer != '\n');
+
   return CONFIG_OK;
 }
 
