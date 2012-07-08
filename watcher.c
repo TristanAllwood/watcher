@@ -77,7 +77,7 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
 
   for (int i = 0; i < paths.we_wordc ; i++) {
     int path_descriptor = inotify_add_watch(inotify_fd, paths.we_wordv[i], 
-        IN_MODIFY | IN_MOVE_SELF);
+        IN_MODIFY | IN_MOVE_SELF | IN_ATTRIB);
     if (path_descriptor == -1) {
       perror("inotify_add_watch");
       exit(1);
