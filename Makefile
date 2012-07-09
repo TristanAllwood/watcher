@@ -12,7 +12,7 @@ util.o: util.c util.h
 
 config.o: config.c config.h util.h
 
-watcher.o: watcher.c watcher.h config.h
+watcher.o: watcher.c watcher.h config.h util.h
 
 watcher: $(OBJS)
 

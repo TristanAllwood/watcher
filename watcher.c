@@ -5,8 +5,9 @@
 #include <unistd.h>
 #include <wordexp.h>
 
-#include "watcher.h"
 #include "config.h"
+#include "util.h"
+#include "watcher.h"
 
 static void main_loop(config_t *);
 static void create_watched_stanza(watched_stanza_t *, stanza_t *, int);
@@ -52,10 +53,26 @@ static void main_loop(config_t *config) {
   struct inotify_event event;
   ssize_t r = read(inotify_fd, &event, sizeof(struct inotify_event));
   if (r != sizeof(struct inotify_event)) {
-    perror("inotify read");
+    fprintf(stderr, "inotify read\n");
     exit(1);
   }
-  printf("Inotify got: %d\n", event.wd);
+
+  for (current_watched_stanza = watched_stanzas;
+       current_watched_stanza - watched_stanzas < config->stanza_count;
+       current_watched_stanza++) {
+
+    if (bsearch_i(current_watched_stanza->num_file_descriptors, 
+                    event.wd, current_watched_stanza->file_descriptors)) {
+
+      for(char **curr_command = current_watched_stanza->stanza->commands;
+          *curr_command != NULL;
+          curr_command++) {
+        printf("Running: %s\n", *curr_command);
+      }
+    }
+
+  }
+
 }
 
 static void create_watched_stanza(watched_stanza_t *current_watched_stanza, 
@@ -75,6 +92,15 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
   }
 
 
+  current_watched_stanza->num_file_descriptors = paths.we_wordc;
+  current_watched_stanza->file_descriptors = calloc(paths.we_wordc, 
+                                                      sizeof(int *));
+  if (current_watched_stanza->file_descriptors == NULL) {
+    perror("calloc");
+    exit(1);
+  }
+  current_watched_stanza->stanza = current_stanza;
+
   for (int i = 0; i < paths.we_wordc ; i++) {
     int path_descriptor = inotify_add_watch(inotify_fd, paths.we_wordv[i], 
         IN_MODIFY | IN_MOVE_SELF | IN_ATTRIB);
@@ -82,7 +108,10 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
       perror("inotify_add_watch");
       exit(1);
     }
+    current_watched_stanza->file_descriptors[i] = path_descriptor;
   }
+
+  qsort_i(paths.we_wordc, current_watched_stanza->file_descriptors);
 
   wordfree(&paths);
 }
