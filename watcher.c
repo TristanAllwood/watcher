@@ -21,6 +21,10 @@ int main(int argc, char ** argv) {
 
   error = parse_config(&config, watcher);
 
+  // TODO: add a watch to the config file (if it changes - reload it)
+  // TODO: add a watch to the watcher binary (if it changes - exec it
+  //                                                  , with arguments!)
+
   if (error == CONFIG_OK) {
     main_loop(config);
   }
