@@ -68,7 +68,6 @@ static void main_loop(config_t *config) {
         for(char **curr_command = current_watched_stanza->stanza->commands;
             *curr_command != NULL;
             curr_command++) {
-          printf("Running: %s\n", *curr_command);
           system("sync"); // TODO: replace with fsync or something on the
                           // file that has changed to stop races
           int status = system(*curr_command);
