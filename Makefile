@@ -1,5 +1,5 @@
 OBJS=watcher.o config.o util.o
-SRC=watcher.c config.h config.c util.o util.h
+SRC=watcher.c config.h config.c util.c util.h
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -pedantic-errors -std=c99 -g
 LDFLAGS=
