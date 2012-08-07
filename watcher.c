@@ -64,7 +64,6 @@ int main(int argc, char ** argv) {
       if (bsearch_i(current_watched_stanza->num_file_descriptors,
                       event.wd, current_watched_stanza->file_descriptors)) {
 
-
         for(char **curr_command = current_watched_stanza->stanza->commands;
             *curr_command != NULL;
             curr_command++) {
