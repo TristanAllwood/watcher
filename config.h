@@ -11,6 +11,7 @@ typedef struct stanza {
 typedef struct config {
   int stanza_count;
   stanza_t *stanzas;
+  char *watcher_file;
 } config_t;
 
 typedef enum config_error {
@@ -23,6 +24,7 @@ typedef enum config_error {
 } config_error_t;
 
 
-config_error_t parse_config(config_t **, FILE *);
+config_error_t parse_config(config_t **, const char *);
+void free_config(config_t **);
 
 #endif

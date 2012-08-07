@@ -6,6 +6,7 @@
 #include "config.h"
 #include "util.h"
 
+static config_error_t parse_stanza(stanza_t *, char *, char *, FILE *file);
 static config_error_t parse_patterns(char ***, char *);
 static config_error_t parse_commands(char ***, char *, FILE *);
 
@@ -14,8 +15,12 @@ enum { BUFFER_SIZE = 512,
        COMMAND_LIMIT = 5,
        STANZA_LIMIT  = 5};
 
-config_error_t parse_config(config_t **out, FILE *file) {
-  
+config_error_t parse_config(config_t **out, const char *filename) {
+  FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+    return CONFIG_ERRNO;
+  }
+
   char buffer[BUFFER_SIZE];
 
   stanza_t *stanzas = calloc(STANZA_LIMIT, sizeof(stanza_t));
@@ -46,24 +51,13 @@ config_error_t parse_config(config_t **out, FILE *file) {
 
     *colon = '\0';
 
-    char **patterns;
-    char **commands;
     config_error_t error;
+    error = parse_stanza(current_stanza, buffer, colon, file);
 
-    error = parse_patterns(&patterns, buffer);
     if (error != CONFIG_OK) {
-      // TODO: free stanzas, patterns, etc
+      // TODO free stuff?
       return error;
     }
-
-    error = parse_commands(&commands, colon + 1, file);
-    if (error != CONFIG_OK) {
-      // TODO: free stanzas, patterns, commands, etc.
-      return error;
-    }
-
-    current_stanza->patterns = patterns;
-    current_stanza->commands = commands;
     current_stanza++;
 
   }
@@ -81,8 +75,39 @@ config_error_t parse_config(config_t **out, FILE *file) {
     // TODO: free stuff
     return CONFIG_ERRNO;
   }
-  (*out)->stanza_count = stanza_count;
-  (*out)->stanzas = stanzas;
+
+  if (fclose(file)) {
+    // TODO: free things
+    return CONFIG_ERRNO;
+  }
+
+  (*out)->stanza_count  = stanza_count;
+  (*out)->stanzas       = stanzas;
+  (*out)->watcher_file  = strdup(filename);
+
+  return CONFIG_OK;
+}
+
+static config_error_t parse_stanza(stanza_t *current_stanza,
+                                    char *buffer, char *colon, FILE *file) {
+  char **patterns;
+  char **commands;
+  config_error_t error;
+
+  error = parse_patterns(&patterns, buffer);
+  if (error != CONFIG_OK) {
+    // TODO: free stanzas, patterns, etc
+    return error;
+  }
+
+  error = parse_commands(&commands, colon + 1, file);
+  if (error != CONFIG_OK) {
+    // TODO: free stanzas, patterns, commands, etc.
+    return error;
+  }
+
+  current_stanza->patterns = patterns;
+  current_stanza->commands = commands;
 
   return CONFIG_OK;
 }
@@ -141,8 +166,39 @@ static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
     }
 
     current_command++;
-  } while (fgets(buffer, BUFFER_SIZE, file) != NULL && *buffer != '\0' && *buffer != '\n');
+  } while (fgets(buffer, BUFFER_SIZE, file) != NULL &&
+                         *buffer != '\0' && *buffer != '\n');
 
   return CONFIG_OK;
+}
+
+void free_config(config_t **config) {
+
+  for(stanza_t *current_stanza = (*config)->stanzas ;
+      current_stanza - (*config)->stanzas < (*config)->stanza_count ;
+      current_stanza++) {
+
+    for(char **pattern = current_stanza->patterns;
+        *pattern != NULL;
+        pattern++ ) {
+      free(*pattern);
+    }
+
+    for(char **command = current_stanza->commands;
+        *command != NULL;
+        command++ ) {
+      free(*command);
+    }
+
+    free(current_stanza->patterns);
+    free(current_stanza->commands);
+
+  }
+
+  free ((*config)->stanzas);
+  free ((*config)->watcher_file);
+
+  free(*config);
+  *config = NULL;
 }
 

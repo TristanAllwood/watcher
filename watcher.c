@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE
+#define _XOPEN_SOURCE_EXTENDED
 
 #include <stdlib.h>
 #include <sys/inotify.h>
@@ -10,49 +11,39 @@
 #include "util.h"
 #include "watcher.h"
 
-static void main_loop(config_t *);
 static void create_watched_stanza(watched_stanza_t *, stanza_t *, int);
+static void setup_watched_stanzas(config_t *, int, watched_stanza_t **);
+static void free_watched_stanzas(config_t *, watched_stanza_t **);
 
 int main(int argc, char ** argv) {
+
+  const char *config_file = ".watcher";
   config_t *config;
   config_error_t error;
 
-  FILE *watcher = fopen(".watcher", "r");
+  error = parse_config(&config, config_file);
 
-  error = parse_config(&config, watcher);
-
-  // TODO: add a watch to the config file (if it changes - reload it)
-  // TODO: add a watch to the watcher binary (if it changes - exec it
-  //                                                  , with arguments!)
-
-  if (error == CONFIG_OK) {
-    main_loop(config);
-  }
-}
-
-static void main_loop(config_t *config) {
-
-  int inotify_fd = inotify_init();
-  if (inotify_fd == -1) {
-    perror("inotify_init");
-    exit(1);
+  if (error != CONFIG_OK) {
+    exit(error);
   }
 
-  while(true) { // TODO: exit and cleanup from loop nicely
+  while(true) {
 
-    watched_stanza_t *watched_stanzas
-      = calloc(config->stanza_count, sizeof(watched_stanza_t));
-    if (watched_stanzas == NULL) {
-      perror("calloc");
+    int inotify_fd = inotify_init();
+    if (inotify_fd == -1) {
+      perror("inotify_init");
       exit(1);
     }
 
-    watched_stanza_t *current_watched_stanza = watched_stanzas;
-    for (stanza_t *current_stanza = config->stanzas;
-         current_stanza - config->stanzas < config->stanza_count;
-         current_stanza++, current_watched_stanza++) {
+    watched_stanza_t *watched_stanzas;
+    setup_watched_stanzas(config, inotify_fd, &watched_stanzas);
+    int config_file_descriptor;
 
-      create_watched_stanza(current_watched_stanza, current_stanza, inotify_fd);
+    config_file_descriptor = inotify_add_watch(inotify_fd, config_file,
+                                          IN_MODIFY | IN_MOVE_SELF | IN_ATTRIB);
+    if (config_file_descriptor == -1) {
+      perror("inotify_add_watch");
+      exit(1);
     }
 
     struct inotify_event event;
@@ -62,6 +53,10 @@ static void main_loop(config_t *config) {
       exit(1);
     }
 
+    sync(); // TODO: this seems a bit overkill.
+
+    watched_stanza_t *current_watched_stanza = watched_stanzas;
+
     for (current_watched_stanza = watched_stanzas;
          current_watched_stanza - watched_stanzas < config->stanza_count;
          current_watched_stanza++) {
@@ -69,11 +64,10 @@ static void main_loop(config_t *config) {
       if (bsearch_i(current_watched_stanza->num_file_descriptors,
                       event.wd, current_watched_stanza->file_descriptors)) {
 
+
         for(char **curr_command = current_watched_stanza->stanza->commands;
             *curr_command != NULL;
             curr_command++) {
-          system("sync"); // TODO: replace with fsync or something on the
-                          // file that has changed to stop races
           int status = system(*curr_command);
           if (status != 0) {
             printf("command exited with code: %d\n", status);
@@ -82,8 +76,46 @@ static void main_loop(config_t *config) {
       }
 
     }
-  }
 
+    free_watched_stanzas(config, &watched_stanzas);
+
+    if (event.wd == config_file_descriptor) {
+      free_config(&config);
+
+      printf("watcher: Reloading config file:\n");
+      error = parse_config(&config, config_file);
+
+      if (error != CONFIG_OK) {
+        if (error == CONFIG_ERRNO) {
+          perror("parse config");
+        }
+        exit(error);
+      }
+    }
+
+    if(close(inotify_fd) != 0) {
+      perror("close inotify_fd");
+      exit(1);
+    }
+
+  }
+}
+
+static void setup_watched_stanzas(config_t *config,
+                          int inotify_fd, watched_stanza_t **watched_stanzas) {
+
+    *watched_stanzas = calloc(config->stanza_count, sizeof(watched_stanza_t));
+    if (*watched_stanzas == NULL) {
+      perror("calloc");
+      exit(1);
+    }
+
+    watched_stanza_t *current_watched_stanza = *watched_stanzas;
+    for (stanza_t *current_stanza = config->stanzas;
+         current_stanza - config->stanzas < config->stanza_count;
+         current_stanza++, current_watched_stanza++) {
+      create_watched_stanza(current_watched_stanza, current_stanza, inotify_fd);
+    }
 }
 
 static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
@@ -125,4 +157,16 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
   qsort_i(paths.we_wordc, current_watched_stanza->file_descriptors);
 
   wordfree(&paths);
+}
+
+static void free_watched_stanzas(config_t *config,
+                                 watched_stanza_t **watched_stanzas) {
+    for (watched_stanza_t *current_watched_stanza = *watched_stanzas;
+         current_watched_stanza - *watched_stanzas < config->stanza_count;
+         current_watched_stanza++) {
+      free(current_watched_stanza->file_descriptors);
+    }
+
+    free(*watched_stanzas);
+    *watched_stanzas = NULL;
 }
