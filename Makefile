@@ -8,7 +8,7 @@ LDFLAGS=
 
 all: tags watcher
 
-util.o: util.c util.h 
+util.o: util.c util.h
 
 config.o: config.c config.h util.h
 
