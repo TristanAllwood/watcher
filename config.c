@@ -114,7 +114,8 @@ static config_error_t parse_stanza(stanza_t *current_stanza,
 
 static config_error_t parse_patterns(char ***patterns, char *buffer) {
   char *save_ptr;
-  *patterns = calloc(PATTERN_LIMIT, sizeof(char*));
+  int allocated_pattern_count = PATTERN_LIMIT;
+  *patterns = calloc(allocated_pattern_count, sizeof(char *));
   if (*patterns == NULL) {
     return CONFIG_ERRNO;
   }
@@ -122,9 +123,16 @@ static config_error_t parse_patterns(char ***patterns, char *buffer) {
   char **current_pattern = *patterns;
 
   do {
-    if (current_pattern - *patterns >= PATTERN_LIMIT) {
-      // TODO: free stuff
-      return CONFIG_TOO_MANY_PATTERNS;
+    if (current_pattern - *patterns >= allocated_pattern_count) {
+      int current_pattern_offset = current_pattern - *patterns;
+      allocated_pattern_count += PATTERN_LIMIT;
+      errno = 0;
+      *patterns = realloc(*patterns, allocated_pattern_count * sizeof(char *));
+      if (errno != 0) {
+        // TODO: free stuff
+        return CONFIG_ERRNO;
+      }
+      current_pattern = (*patterns)+current_pattern_offset;
     }
 
     char *tmp = strtok_r(buffer, " \t", &save_ptr);
