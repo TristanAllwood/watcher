@@ -1,7 +1,8 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include <string.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 #include "util.h"
@@ -210,3 +211,19 @@ void free_config(config_t **config) {
   *config = NULL;
 }
 
+const char * str_config_error(config_error_t error) {
+  switch(error) {
+    case CONFIG_OK:
+      return "OK";
+    case CONFIG_PARSE_ERROR:
+      return "PARSE ERROR";
+    case CONFIG_TOO_MANY_STANZAS:
+      return "TOO MANY STANZAS";
+    case CONFIG_TOO_MANY_COMMANDS:
+      return "TOO MANY COMMANDS";
+    case CONFIG_ERRNO:
+      return strerror(errno);
+    default:
+      return "IMPOSSIBLE";
+  }
+}

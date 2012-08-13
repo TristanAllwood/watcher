@@ -24,6 +24,8 @@ int main(int argc, char ** argv) {
   error = parse_config(&config, config_file);
 
   if (error != CONFIG_OK) {
+    const char * errmsg = str_config_error(error);
+    fprintf(stderr, "Error: %s\n", errmsg);
     exit(error);
   }
 
