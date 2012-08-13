@@ -136,7 +136,7 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
 
   current_watched_stanza->num_file_descriptors = paths.we_wordc;
   current_watched_stanza->file_descriptors = calloc(paths.we_wordc,
-                                                      sizeof(int *));
+                                                      sizeof(int));
   if (current_watched_stanza->file_descriptors == NULL) {
     perror("calloc");
     exit(1);

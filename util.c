@@ -15,11 +15,11 @@ void chomp(char * s) {
 }
 
 void qsort_i(size_t length, int array[]) {
-  qsort(array, length, sizeof(int *), int_cmp);
+  qsort(array, length, sizeof(int), int_cmp);
 }
 
 int bsearch_i(size_t length, int key, int array[]) {
-  return bsearch(&key, array, length, sizeof(int *), int_cmp) != NULL;
+  return bsearch(&key, array, length, sizeof(int), int_cmp) != NULL;
 }
 
 static int int_cmp(const void * left, const void * right) {
