@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 typedef struct stanza {
-  char **patterns;
+  char *pattern;
   char **commands;
 } stanza_t;
 

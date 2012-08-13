@@ -8,7 +8,6 @@
 #include "util.h"
 
 static config_error_t parse_stanza(stanza_t *, char *, char *, FILE *file);
-static config_error_t parse_patterns(char ***, char *);
 static config_error_t parse_commands(char ***, char *, FILE *);
 
 enum { BUFFER_SIZE = 512,
@@ -91,15 +90,8 @@ config_error_t parse_config(config_t **out, const char *filename) {
 
 static config_error_t parse_stanza(stanza_t *current_stanza,
                                     char *buffer, char *colon, FILE *file) {
-  char **patterns;
   char **commands;
   config_error_t error;
-
-  error = parse_patterns(&patterns, buffer);
-  if (error != CONFIG_OK) {
-    // TODO: free stanzas, patterns, etc
-    return error;
-  }
 
   error = parse_commands(&commands, colon + 1, file);
   if (error != CONFIG_OK) {
@@ -107,41 +99,11 @@ static config_error_t parse_stanza(stanza_t *current_stanza,
     return error;
   }
 
-  current_stanza->patterns = patterns;
-  current_stanza->commands = commands;
-
-  return CONFIG_OK;
-}
-
-static config_error_t parse_patterns(char ***patterns, char *buffer) {
-  char *save_ptr;
-  int allocated_pattern_count = PATTERN_LIMIT;
-  *patterns = calloc(allocated_pattern_count, sizeof(char *));
-  if (*patterns == NULL) {
+  current_stanza->pattern = strdup(buffer);
+  if (current_stanza->pattern == NULL) {
     return CONFIG_ERRNO;
   }
-
-  char **current_pattern = *patterns;
-
-  do {
-    if (current_pattern - *patterns >= allocated_pattern_count) {
-      int current_pattern_offset = current_pattern - *patterns;
-      allocated_pattern_count += PATTERN_LIMIT;
-      errno = 0;
-      *patterns = realloc(*patterns, allocated_pattern_count * sizeof(char *));
-      if (errno != 0) {
-        // TODO: free stuff
-        return CONFIG_ERRNO;
-      }
-      current_pattern = (*patterns)+current_pattern_offset;
-    }
-
-    char *tmp = strtok_r(buffer, " \t", &save_ptr);
-    *current_pattern = tmp != NULL ? strdup(tmp) : NULL;
-    buffer = NULL;
-  } while (*(current_pattern++) != NULL);
-
-  // TODO: realloc patterns.
+  current_stanza->commands = commands;
 
   return CONFIG_OK;
 }
@@ -187,19 +149,13 @@ void free_config(config_t **config) {
       current_stanza - (*config)->stanzas < (*config)->stanza_count ;
       current_stanza++) {
 
-    for(char **pattern = current_stanza->patterns;
-        *pattern != NULL;
-        pattern++ ) {
-      free(*pattern);
-    }
-
     for(char **command = current_stanza->commands;
         *command != NULL;
         command++ ) {
       free(*command);
     }
 
-    free(current_stanza->patterns);
+    free(current_stanza->pattern);
     free(current_stanza->commands);
 
   }

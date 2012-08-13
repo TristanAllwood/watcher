@@ -123,18 +123,12 @@ static void create_watched_stanza(watched_stanza_t *current_watched_stanza,
                         stanza_t *current_stanza, int inotify_fd) {
   int error;
   wordexp_t paths;
-  int wordexp_flags = 0;
 
-  for (char **pattern = current_stanza->patterns;
-       *pattern != NULL;
-       pattern++) {
-    if ((error = wordexp(*pattern, &paths, wordexp_flags)) != 0) {
-      fprintf(stderr, "wordexp error: %d\n", error);
-      exit(1);
-    }
-    wordexp_flags |= WRDE_APPEND;
+  char *pattern = current_stanza->pattern;
+  if ((error = wordexp(pattern, &paths, WRDE_SHOWERR | WRDE_UNDEF)) != 0) {
+    fprintf(stderr, "wordexp error: %d\n", error);
+    exit(1);
   }
-
 
   current_watched_stanza->num_file_descriptors = paths.we_wordc;
   current_watched_stanza->file_descriptors = calloc(paths.we_wordc,
