@@ -2,9 +2,11 @@ watcher
 =======
 
 inotify based watching/dev tool, using a Makefile-style config syntax.
-This is a prototype.
+Please note, this is a work-in-progress prototype.
 
-As an example of the syntax, see the .watcher file in this repository.
+The config file specifies (wordexp expanded) file patterns to match, followed
+by a sequence of commands to run when those file are modified.  As an example
+of the syntax, see the .watcher file in this repository.
 
 See also the ruby tool guard [1], which is probably more mature / flexible.
 Also relevant is inotifywait from the inotify-tools project [2].
