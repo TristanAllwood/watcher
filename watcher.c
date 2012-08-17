@@ -42,7 +42,8 @@ int main(int argc, char ** argv) {
     int config_file_descriptor;
 
     config_file_descriptor = inotify_add_watch(inotify_fd, config_file,
-                                          IN_MODIFY | IN_MOVE_SELF | IN_ATTRIB);
+                                          IN_MODIFY | IN_ATTRIB);
+    // TODO: if it's a directory, then add IN_MOVE_SELF
     if (config_file_descriptor == -1) {
       perror("inotify_add_watch");
       exit(1);
@@ -54,8 +55,6 @@ int main(int argc, char ** argv) {
       fprintf(stderr, "inotify read\n");
       exit(1);
     }
-
-    sync(); // TODO: this seems a bit overkill.
 
     watched_stanza_t *current_watched_stanza = watched_stanzas;
 
