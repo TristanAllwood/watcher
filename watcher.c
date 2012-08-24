@@ -1,11 +1,14 @@
 #define _XOPEN_SOURCE
 #define _XOPEN_SOURCE_EXTENDED
+#define _POSIX_C_SOURCE 199309L
 
+#include <fcntl.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/inotify.h>
+#include <time.h>
 #include <unistd.h>
 #include <wordexp.h>
-#include <stdbool.h>
 
 #include "config.h"
 #include "util.h"
@@ -42,8 +45,7 @@ int main(int argc, char ** argv) {
     int config_file_descriptor;
 
     config_file_descriptor = inotify_add_watch(inotify_fd, config_file,
-                                          IN_MODIFY | IN_ATTRIB);
-    // TODO: if it's a directory, then add IN_MOVE_SELF
+                                          IN_MOVE_SELF | IN_MODIFY | IN_ATTRIB);
     if (config_file_descriptor == -1) {
       perror("inotify_add_watch");
       exit(1);
@@ -56,6 +58,23 @@ int main(int argc, char ** argv) {
       exit(1);
     }
 
+    /* need to drain off other events, allow TIMEOUT between each one*/
+    fcntl(inotify_fd, F_SETFL, O_NONBLOCK);
+
+    struct inotify_event tmp_event;
+    do {
+      struct timespec ts;
+      ts.tv_sec = 0;
+      ts.tv_nsec = TIMEOUT_NS;
+
+      if (nanosleep(&ts, NULL) == -1) {
+        fprintf(stderr, "nanosleep\n");
+        exit(1);
+      }
+    } while (read(inotify_fd, &tmp_event, sizeof(struct inotify_event)) > 0);
+
+
+    /* now process the original event */
     watched_stanza_t *current_watched_stanza = watched_stanzas;
 
     for (current_watched_stanza = watched_stanzas;
