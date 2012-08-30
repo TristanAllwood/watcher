@@ -18,7 +18,6 @@ typedef enum config_error {
   CONFIG_OK,
   CONFIG_PARSE_ERROR,
   CONFIG_TOO_MANY_STANZAS,
-  CONFIG_TOO_MANY_COMMANDS,
   CONFIG_ERRNO
 } config_error_t;
 

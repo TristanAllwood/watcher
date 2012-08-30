@@ -11,8 +11,7 @@ static config_error_t parse_stanza(stanza_t *, char *, char *, FILE *file);
 static config_error_t parse_commands(char ***, char *, FILE *);
 
 enum { BUFFER_SIZE = 512,
-       PATTERN_LIMIT = 5,
-       COMMAND_LIMIT = 5,
+       COMMAND_INCREMENT = 5,
        STANZA_LIMIT  = 5};
 
 config_error_t parse_config(config_t **out, const char *filename) {
@@ -110,7 +109,8 @@ static config_error_t parse_stanza(stanza_t *current_stanza,
 
 static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
 
-  *out = calloc(COMMAND_LIMIT, sizeof(char *));
+  *out = calloc(COMMAND_INCREMENT, sizeof(char *));
+  int max_commands = COMMAND_INCREMENT;
   if (*out == NULL) {
     return CONFIG_ERRNO;
   }
@@ -118,9 +118,10 @@ static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
   char **current_command = *out;
 
   do {
-    if (current_command - *out >= COMMAND_LIMIT) {
-      //TODO: free stuff
-      return CONFIG_TOO_MANY_COMMANDS;
+    if (current_command - *out == max_commands - 1) {
+      *out = realloc(*out, sizeof(char *) * (max_commands + COMMAND_INCREMENT));
+      current_command = (*out) + max_commands;
+      max_commands += COMMAND_INCREMENT;
     }
 
     size_t skip = strspn(buffer, " \t");
@@ -137,6 +138,7 @@ static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
     }
 
     current_command++;
+    *current_command = NULL;
   } while (fgets(buffer, BUFFER_SIZE, file) != NULL &&
                          *buffer != '\0' && *buffer != '\n');
 
@@ -175,8 +177,6 @@ const char * str_config_error(config_error_t error) {
       return "PARSE ERROR";
     case CONFIG_TOO_MANY_STANZAS:
       return "TOO MANY STANZAS";
-    case CONFIG_TOO_MANY_COMMANDS:
-      return "TOO MANY COMMANDS";
     case CONFIG_ERRNO:
       return strerror(errno);
     default:

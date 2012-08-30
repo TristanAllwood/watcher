@@ -1,4 +1,8 @@
-*.c *.h: make
+*.c *.h: clear
+  echo Building
+  echo ========
+  make
+  date
   git status -s
 
 Makefile:
