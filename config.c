@@ -12,7 +12,7 @@ static config_error_t parse_commands(char ***, char *, FILE *);
 
 enum { BUFFER_SIZE = 512,
        PATTERN_LIMIT = 5,
-       COMMAND_LIMIT = 5,
+       COMMAND_LIMIT = 10,
        STANZA_LIMIT  = 5};
 
 config_error_t parse_config(config_t **out, const char *filename) {
