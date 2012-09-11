@@ -118,9 +118,9 @@ static config_error_t parse_commands(char ***out, char *buffer, FILE *file) {
   char **current_command = *out;
 
   do {
-    if (current_command - *out == max_commands - 1) {
+    if ((current_command - *out) == (max_commands - 1)) {
       *out = realloc(*out, sizeof(char *) * (max_commands + COMMAND_INCREMENT));
-      current_command = (*out) + max_commands;
+      current_command = (*out) + (max_commands - 1);
       max_commands += COMMAND_INCREMENT;
     }
 
