@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-static const long  TIMEOUT_NS = 50 * 1e6;
+static const long  TIMEOUT_NS = 80 * 1e6;
 
 typedef struct watched_stanza {
   int num_file_descriptors;
