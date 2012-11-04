@@ -58,11 +58,14 @@ int main(int argc, char ** argv) {
       exit(1);
     }
 
-    /* need to drain off other events, allow TIMEOUT between each one*/
+    /* need to drain off other events, allow TIMEOUT between each one */
     fcntl(inotify_fd, F_SETFL, O_NONBLOCK);
 
     struct inotify_event tmp_event;
+    bool event_happend;
+
     do {
+      event_happend = false;
       struct timespec ts;
       ts.tv_sec = 0;
       ts.tv_nsec = TIMEOUT_NS;
@@ -71,7 +74,11 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "nanosleep\n");
         exit(1);
       }
-    } while (read(inotify_fd, &tmp_event, sizeof(struct inotify_event)) > 0);
+
+      while (read(inotify_fd, &tmp_event, sizeof(struct inotify_event) > 0)) {
+        event_happend = true;
+      }
+    } while (event_happend);
 
 
     /* now process the original event */
