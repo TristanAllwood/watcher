@@ -75,7 +75,7 @@ int main(int argc, char ** argv) {
         exit(1);
       }
 
-      while (read(inotify_fd, &tmp_event, sizeof(struct inotify_event) > 0)) {
+      while (read(inotify_fd, &tmp_event, sizeof(struct inotify_event)) > 0) {
         event_happend = true;
       }
     } while (event_happend);
